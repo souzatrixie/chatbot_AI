@@ -1,0 +1,6 @@
+streamlit
+transformers
+faiss-cpu
+numpy
+sqlalchemy
+pymysql
