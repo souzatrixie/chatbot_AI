@@ -35,3 +35,4 @@ Dockerfile
 # Arquivos do Git
 .git/
 *.swp
+secrets.toml

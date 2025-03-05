@@ -1,12 +1,11 @@
-from sqlalchemy import create_engine
+documents = [
+    "A TE Connectivity é líder global em sensores e soluções de conectividade.",
+    "Nossos produtos incluem conectores, sensores e sistemas de antenas.",
+    "Atendemos diversas indústrias, como automotiva, aeroespacial e médica.",
+    "Para informações sobre produtos específicos, visite nosso site ou entre em contato com um representante.",
+    "Nossos sensores de temperatura são usados em aplicações industriais e automotivas.",
+    "Os conectores da TE são projetados para alta confiabilidade em ambientes exigentes."
+]
 
-engine = create_engine("mysql+pymysql://user:password@localhost:3306/database_name")
-
-def insert_document(title, content):
-    with engine.connect() as conn:
-        conn.execute(f"INSERT INTO documents (title, content) VALUES ('{title}', '{content}')")
-
-def get_document_by_id(doc_id):
-    with engine.connect() as conn:
-        result = conn.execute(f"SELECT * FROM documents WHERE id = {doc_id}")
-        return result.fetchone()
+def get_all_documents():
+    return documents

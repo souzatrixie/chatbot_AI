@@ -1,0 +1,71 @@
+/* Ajusta a cor da barra lateral para um tom da TE Connectivity */
+section[data-testid="stSidebar"] {
+    background-color: #f4a000;
+    color: white;
+}
+
+/* Deixa os botões mais visíveis */
+button {
+    background-color: #005a9c !important;
+    color: white !important;
+    border-radius: 10px;
+    padding: 8px 15px;
+    font-size: 16px;
+    border: none;
+}
+
+button:hover {
+    background-color: #004377 !important;
+}
+
+/* Estilização dos sliders */
+div[data-baseweb="slider"] {
+    background-color: #f4a000 !important;  /* Corrigido para combinar com a barra lateral */
+    border-radius: 10px;
+}
+
+/* Ajusta a caixa de entrada do chat */
+input[type="text"] {
+    border: 2px solid #005a9c !important;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 14px;
+}
+
+/* Mensagens no chat */
+div[data-testid="stChatMessage"] {
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+/* Mensagens do usuário */
+div[data-testid="stChatMessage"][class*="user"] {
+    background-color: #005a9c !important;
+    color: white;
+}
+
+/* Mensagens do assistente */
+div[data-testid="stChatMessage"][class*="assistant"] {
+    background-color: #f4a000 !important;
+    color: white;
+}
+
+/* Espaçamento e bordas arredondadas */
+.stDownloadButton, .stButton {
+    margin-top: 10px;
+    width: 100%;
+}
+
+/* Garantir que a entrada do chat fique fixa no final da tela */
+.stTextInput {
+    position: fixed;
+    bottom: 10px;
+    width: 60%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+}

@@ -1,10 +1,16 @@
-from app.models.query_model import QueryModel
-from app.views.response_view import display_response
+from app.controllers import rag_controller
 
-class QueryController:
-    def __init__(self):
-        self.model = QueryModel()
+rag_controller = rag_controller.RAGController()
 
-    def process_query(self, question):
-        response = self.model.get_response(question)
-        return display_response(response)
+def generate_response(prompt, temperature):
+    """
+    Gera uma resposta usando o modelo de consulta (RAG).
+
+    Args:
+        prompt (str): A mensagem do usuário.
+        temperature (float): A temperatura para controlar a aleatoriedade da resposta.
+
+    Returns:
+        str: A resposta gerada pelo modelo.
+    """
+    return rag_controller.get_response(prompt, temperature)
