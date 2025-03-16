@@ -1,5 +1,4 @@
 import streamlit as st
-import random
 import time
 import json
 from config import settings
@@ -34,7 +33,7 @@ with st.sidebar:
         st.session_state.stop_response = True
 
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Olá! Eu sou MAITE, sua assistente de IA da TE Connectivity. Como posso te ajudar hoje?"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Olá! Eu sou a MAITE, sua assistente de IA da TE Connectivity. Como posso te ajudar hoje?"}]
 
 # Exibir histórico inline
 for message in st.session_state.messages:

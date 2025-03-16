@@ -1,24 +1,29 @@
 import streamlit as st
-from groq import Groq
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+from huggingface_hub import login  # Para autenticação
 
-class GroqModel:
+class HuggingFaceModel:
     def __init__(self):
-        groq_api_key = st.secrets["secrets"]["GROQ_API_KEY"]
-        if not groq_api_key:
-            raise ValueError("Chave de API da Groq não encontrada.")
+        model_name = "meta-llama/Llama-3.3-70B-Instruct"
 
-        # Configuração do cliente Groq
-        self.groq_client = Groq(api_key=groq_api_key)
+        # Recupera o token do Hugging Face do arquivo secrets
+        huggingface_token = st.secrets["huggingface"]["HF_API_TOKEN"]
+        if not huggingface_token:
+            raise ValueError("Token da Hugging Face não encontrado nos secrets.")
+
+        # Faz login no Hugging Face usando o token
+        login(token=huggingface_token)
+
+        # Carrega o modelo e tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=True)
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, use_auth_token=True)
+
+        # Cria a pipeline para geração de texto
+        self.pipeline = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
 
     def generate_response(self, prompt, temperature=0.7):
         try:
-            chat_completion = self.groq_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model="llama-3.3-70b-versatile",  # Modelo Groq a ser usado
-                temperature=temperature  # Controle de temperatura para variação da resposta
-            )
-
-            return chat_completion.choices[0].message.content  # Retorna a resposta da Groq
-
+            response = self.pipeline(prompt, max_length=512, temperature=temperature, do_sample=True)
+            return response[0]['generated_text']
         except Exception as e:
-            return f"Erro ao chamar a Groq API: {str(e)}"
+            return f"Erro ao chamar o modelo da Hugging Face: {str(e)}"

@@ -1,4 +1,6 @@
-# config.py
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Diretório do arquivo atual
 
 settings = {
     "DB_CONNECTION": "mysql+pymysql://user:password@localhost:3306/database_name",
@@ -6,5 +8,6 @@ settings = {
     "paths": {
         "logo_path": r"C:\Users\Pichau\OneDrive\Documentos\GitHub\chatbot_AI\interface\TE_logo.png",
         "style_path": r"C:\Users\Pichau\OneDrive\Documentos\GitHub\chatbot_AI\interface\style.css"
-    }
 }
+    }
+
