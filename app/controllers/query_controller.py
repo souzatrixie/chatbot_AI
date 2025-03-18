@@ -1,6 +1,6 @@
-from app.controllers import rag_controller
+from app.controllers.rag_controller import RAGController
 
-rag_controller = rag_controller.RAGController()
+rag_controller = RAGController()
 
 def generate_response(prompt, temperature):
     """
@@ -13,4 +13,5 @@ def generate_response(prompt, temperature):
     Returns:
         str: A resposta gerada pelo modelo.
     """
+    
     return rag_controller.get_response(prompt, temperature)
