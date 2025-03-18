@@ -1,0 +1,1 @@
+from app.controllers.query_controller import generate_response
