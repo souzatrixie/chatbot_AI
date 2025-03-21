@@ -8,47 +8,29 @@ Este projeto implementa um sistema de IA generativa utilizando **Streamlit** par
 
 ```
 chatbot_AI/
-│-- .env
-│-- .env_teste
-│-- .gitignore
-│-- Dockerfile
-│-- LICENSE
-│-- main.py
-│-- README.md
-│-- requirements.txt
-│-- .streamlit/
-│   ├── config.toml
-│   ├── secrets.toml
-│-- .vscode/
-│   ├── launch.json
 │-- app/
-│   ├── __init__.py
-│   ├── __pycache__/
-│   │   ├── __init__.cpython-312.pyc
-│   │   ├── __init__.cpython-38.pyc
-│   ├── controllers/
+│   ├── controllers/  # Controladores que gerenciam a lógica de negócio
 │   │   ├── __init__.py
 │   │   ├── query_controller.py
-│   │   ├── rag_controller.py
-│   │   ├── __pycache__/
-│   ├── models/
+│   ├── models/  # Modelos para manipulação de dados
 │   │   ├── __init__.py
-│   │   ├── embedding_model.py
 │   │   ├── query_model.py
-│   │   ├── rerank_model.py
-│   │   ├── llama_model.py
-│-- config/
+│-- config/  # Configurações do projeto
 │   ├── settings.py
-│   ├── __pycache__/
-│-- db/
+│-- db/  # Gerenciamento do banco de dados
 │   ├── database.py
-│   ├── __pycache__/
-│-- interface/
+│-- interface/  # Arquivos de interface
 │   ├── style.css
 │   ├── TE_logo.png
-│-- scripts/
-│-- tests/
+│-- tests/  # Testes unitários
 │   ├── test_app.py
+│-- .streamlit/  # Configurações do Streamlit
+│   ├── config.toml
+│-- main.py  # Arquivo principal da aplicação
+│-- Dockerfile  # Configuração do Docker
+│-- requirements.txt  # Dependências do projeto
+│-- .gitignore  # Arquivos a serem ignorados pelo Git
+│-- README.md  # Documentação do projeto
 ```
 
 ## Tecnologias Utilizadas

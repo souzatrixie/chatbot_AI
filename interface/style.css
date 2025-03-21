@@ -1,6 +1,6 @@
 /* Ajusta a cor da barra lateral para um tom da TE Connectivity */
 section[data-testid="stSidebar"] {
-    background-color: #f4a000;
+    background-color: #e98300;
     color: white;
 }
 
@@ -9,6 +9,7 @@ button {
     background-color: #005a9c !important;
     color: white !important;
     border-radius: 10px;
+    transition: all 0.3s ease-in-out;
     padding: 8px 15px;
     font-size: 16px;
     border: none;
@@ -16,11 +17,12 @@ button {
 
 button:hover {
     background-color: #004377 !important;
+    transform: scale(1.01);
 }
 
 /* Estilização dos sliders */
 div[data-baseweb="slider"] {
-    background-color: #f4a000 !important;  /* Corrigido para combinar com a barra lateral */
+    background-color: #f4a000  !important;  /* Corrigido para combinar com a barra lateral */
     border-radius: 10px;
 }
 
@@ -51,6 +53,18 @@ div[data-testid="stChatMessage"][class*="assistant"] {
     color: white;
 }
 
+/*Ajusta container com a caixa de entrada e botões*/
+div[data-testid="stVerticalBlock"] {
+    width: 100% !important;
+    margin: auto;
+}
+
+div[data-testid="stForm"] {
+    background-color: #e98300;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    color: white;
+}
+
 /* Espaçamento e bordas arredondadas */
 .stDownloadButton, .stButton {
     margin-top: 10px;
@@ -58,14 +72,33 @@ div[data-testid="stChatMessage"][class*="assistant"] {
 }
 
 /* Garantir que a entrada do chat fique fixa no final da tela */
-.stTextInput {
+.st-key-footer {
     position: fixed;
     bottom: 10px;
-    width: 60%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999;
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
+    width: 100%;
+    background-color: #ffffff;
+    padding: 10px 1;
+    z-index: 9999;
 }
+
+/* Alinha os botões com a altura da entrada do chat */
+.st-key-stop {
+    bottom: 10px;    
+}
+
+.st-key-regenerate {
+    bottom: 10px;    
+}
+
+.st-key-topbar {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    width: 100%;
+    height: 100px; /* Reduzindo altura para testar */
+    background-color: #e98300;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    color: white;
+    z-index: 9999;
+}
+
