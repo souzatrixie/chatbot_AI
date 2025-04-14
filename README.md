@@ -1,64 +1,49 @@
-# IA Generativa com Streamlit, FAISS e Banco de Dados
+# IA Generativa com Streamlit e Banco de Dados
 
 ## Descrição do Projeto
 
-Este projeto implementa um sistema de IA generativa utilizando **Streamlit** para interface, **FAISS** para busca eficiente de documentos relevantes e **SQLAlchemy** para gerenciamento do banco de dados. A arquitetura segue o padrão **MVC (Model-View-Controller)** para melhor organização e manutenção do código.
+Este projeto implementa um sistema de IA generativa utilizando **Streamlit** para interface, **Sentence Transformers** para geração de embeddings semânticos e **MySQL** para gerenciamento do banco de dados. A arquitetura segue o padrão **MVC (Model-View-Controller)** para melhor organização e manutenção do código.
 
 ## Estrutura do Projeto
 
+
 ```
+# Estrutura do Projeto `chatbot_AI`
+
+```plaintext
 chatbot_AI/
-│-- .env
-│-- .env_teste
-│-- .gitignore
-│-- Dockerfile
-│-- LICENSE
-│-- main.py
-│-- README.md
-│-- requirements.txt
-│-- .streamlit/
-│   ├── config.toml
-│   ├── secrets.toml
-│-- .vscode/
-│   ├── launch.json
-│-- app/
-│   ├── __init__.py
-│   ├── __pycache__/
-│   │   ├── __init__.cpython-312.pyc
-│   │   ├── __init__.cpython-38.pyc
-│   ├── controllers/
-│   │   ├── __init__.py
-│   │   ├── query_controller.py
-│   │   ├── rag_controller.py
-│   │   ├── __pycache__/
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── embedding_model.py
-│   │   ├── query_model.py
-│   │   ├── rerank_model.py
-│   │   ├── llama_model.py
-│-- config/
-│   ├── settings.py
-│   ├── __pycache__/
-│-- db/
-│   ├── database.py
-│   ├── __pycache__/
-│-- interface/
-│   ├── style.css
-│   ├── TE_logo.png
-│-- scripts/
-│-- tests/
-│   ├── test_app.py
+│
+├── app/                          # Lógica principal da aplicação
+│   ├── controllers/              # Controladores que gerenciam a lógica de negócio
+│   ├── models/                   # Modelos para manipulação de dados
+│   ├── config/                   # Configurações do projeto
+│   ├── db/                       # Gerenciamento do banco de dados
+│   ├── interface/                # Arquivos de interface do usuário
+│   ├── tests/                    # Testes unitários
+│   ├── .streamlit/               # Configurações específicas do Streamlit
+│
+├── main.py                        # Arquivo principal da aplicação
+├── Dockerfile                     # Configuração do Docker
+├── docker-compose.yml             # Configuração do Docker Compose
+├── requirements.txt               # Dependências do projeto
+├── .gitignore                     # Arquivos a serem ignorados pelo Git
+└── README.md                      # Documentação do projeto
+
 ```
+
 
 ## Tecnologias Utilizadas
 
-- **Python 3.9**
-- **Streamlit** (Interface gráfica)
-- **FAISS** (Pesquisa de similaridade)
-- **Transformers (Hugging Face)** (Modelo de embeddings)
-- **SQLAlchemy** (Gerenciamento do banco de dados)
-- **Docker** (Ambiente isolado)
+- **Python 3.8+**: Linguagem de programação principal.
+- **Streamlit**: Framework para criação de interfaces web interativas.
+- **Sentence Transformers**: Biblioteca para geração de embeddings semânticos.
+- **MySQL**: Banco de dados relacional para armazenamento de informações.
+- **SQLAlchemy**: ORM (Object-Relational Mapping) para interação com o banco de dados.
+- **Transformers (Hugging Face)**: Framework para modelos de linguagem avançados.
+- **PyTorch**: Framework para cálculos numéricos e aprendizado profundo.
+- **Docker**: Ferramenta para criar ambientes isolados e portáveis.
+- **Streamlit Chat**: Componente para adicionar funcionalidades de chat na interface.
+- **Tiktoken**: Biblioteca para tokenização eficiente.
 
 ## Configuração e Execução
 
@@ -67,26 +52,55 @@ chatbot_AI/
 Se estiver rodando localmente, execute:
 
 ```bash
-pip install -r requirements.txt
+pip install -r [requirements.txt](http://_vscodecontentref_/18)
 ```
 
-### 2. Criar e rodar o container Docker
+### 2. Configurar o Banco de Dados
 
 ```bash
-docker build -t ai-generative-app .
-docker run -p 8501:8501 ai-generative-app
+[mysql]
+host = "localhost"
+user = "root"
+password = "sua_senha"
+name = "dfmeas"
+```
+
+### Executar
+
+Para rodar o projeto em um ambiente isolado, use o Docker:
+
+```bash
+docker-compose up --build
 ```
 
 Isso iniciará a aplicação no endereço `http://localhost:8501`
 
-## Fluxo de Funcionamento
+Se preferir rodar localmente sem Docker, execute o seguinte comando
 
-1. O usuário insere uma pergunta na interface Streamlit.
-2. A pergunta é processada pelo [`QueryController`](app/controllers/query_controller.py), que chama o [`QueryModel`](app/models/query_model.py).
-3. O modelo gera embeddings da pergunta e busca documentos relevantes no FAISS.
-4. Os documentos são reclassificados e uma resposta é gerada.
-5. A resposta é exibida na interface do usuário.
+```bash
+streamlit run main.py
+```
+
+## Fluxo de Processamento da Pergunta
+
+1. O usuário digita a pergunta na interface do Streamlit.
+
+2. O `QueryController` recebe a pergunta e chama o `RAGController`.
+
+3. O `RAGController` é responsável por processar a pergunta e acionar o modelo de embeddings.
+
+4. **Sentence Transformers** gera embeddings para a pergunta do usuário.
+
+5. Os embeddings gerados são utilizados para realizar uma busca no banco de dados MySQL por documentos relevantes.
+
+6. Os documentos retornados são reclassificados com base na **similaridade de cosseno** utilizando **PyTorch**.
+
+7. O modelo **Groq - llama7b** (via API) é chamado para gerar uma resposta com base nos documentos encontrados.
+
+8. A resposta gerada pelo modelo **Groq** é exibida na interface do usuário, completando o ciclo.
+
+---
 
 ## Contribuição
 
-Sinta-se à vontade para contribuir abrindo issues e pull requests. 🚀
+Sinta-se à vontade para contribuir abrindo issues e pull requests.
