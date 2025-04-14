@@ -1,6 +1,6 @@
 /* Ajusta a cor da barra lateral para um tom da TE Connectivity */
 section[data-testid="stSidebar"] {
-    background-color: #f4a000;
+    background-color: #e98300;
     color: white;
 }
 
@@ -9,6 +9,7 @@ button {
     background-color: #005a9c !important;
     color: white !important;
     border-radius: 10px;
+    transition: all 0.3s ease-in-out;
     padding: 8px 15px;
     font-size: 16px;
     border: none;
@@ -16,11 +17,12 @@ button {
 
 button:hover {
     background-color: #004377 !important;
+    transform: scale(1.01);
 }
 
 /* Estilização dos sliders */
 div[data-baseweb="slider"] {
-    background-color: #f4a000 !important;  /* Corrigido para combinar com a barra lateral */
+    background-color: #f4a000 !important;
     border-radius: 10px;
 }
 
@@ -51,6 +53,18 @@ div[data-testid="stChatMessage"][class*="assistant"] {
     color: white;
 }
 
+/* Ajusta container com a caixa de entrada e botões */
+div[data-testid="stVerticalBlock"] {
+    width: 100% !important;
+    margin: auto;
+}
+
+div[data-testid="stForm"] {
+    background-color: #e98300;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    color: white;
+}
+
 /* Espaçamento e bordas arredondadas */
 .stDownloadButton, .stButton {
     margin-top: 10px;
@@ -58,14 +72,123 @@ div[data-testid="stChatMessage"][class*="assistant"] {
 }
 
 /* Garantir que a entrada do chat fique fixa no final da tela */
-.stTextInput {
+.st-key-footer {
     position: fixed;
     bottom: 10px;
-    width: 60%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999;
-    background: white;
+    width: 100%;
+    background-color: #ffffff;
+    padding: 10px 1;
+    z-index: 9999;
+}
+
+/* Alinha os botões com a altura da entrada do chat */
+.st-key-stop {
+    bottom: 10px;    
+}
+
+.st-key-regenerate {
+    bottom: 10px;    
+}
+
+.st-key-topbar {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background-color: #e98300;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    color: white;
+    z-index: 9999;
+}
+
+/* Estilo para o container principal do login */
+.login-container {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* Estilo para o título */
+.login-title {
+    color: #005a9c;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* Estilo para o texto de instrução */
+.login-instruction {
+    text-align: center;
+    color: white;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+/* Estilo para o botão de cadastro */
+.signup-button {
+    background-color: #005a9c;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+.signup-button:hover {
+    background-color: #004377;
+    transform: scale(1.01);
+}
+
+/* Estilo para o link "Forgot your password?" */
+.forgot-password {
+    text-align: center;
+    margin-top: 7px;
+    color: #005a9c;
+    text-decoration: none;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+/* Mensagens do usuário no chat */
+.chat-message-user {
+    background-color: #005a9c;
+    color: white;
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 10px;
+    text-align: right;
+    margin-bottom: 8px;
+}
+
+/* Mensagens do assistente no chat */
+.chat-message-assistant {
+    background-color: #f0f0f0;
+    color: black;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+/* Avatar do usuário e assistente */
+.chat-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Sidebar */
+.sidebar-header {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.sidebar-slider {
+    margin-top: 20px;
+}
+
+.sidebar-download {
+    margin-top: 20px;
 }
