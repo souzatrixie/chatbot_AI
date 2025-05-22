@@ -48,6 +48,21 @@ col_table = {
 }
 
 def atoi(input:str) -> int:
+    '''
+    Implementação da atoi() de C, em Python. 
+    
+    Converte uma string em um inteiro até o primeiro caractere não numérico.
+    
+    Arguments
+    ---------
+    input (str)
+        String para converter.
+        
+    Returns
+    -------
+    int
+        O inteiro.
+    '''
     sign = 1
     num = 0
     try:
@@ -66,13 +81,36 @@ def atoi(input:str) -> int:
         num = num * 10 + int(c)
     return num * sign
 
-# retorna a linha em que os dados provavelmente começam e um dicionário indicando a posição de cada coluna detectada
-# ou retorna (None, None) caso não consiga localizar todas as colunas necessárias nas primeiras search_len linhas.
-#
-# file é o arquivo;
-# sheet_index é o índice da planilha;
-# search_len é a quantidade máxima de linhas a ser analizada antes de desistir.
 def get_data_cols_from_doc(file:pd.ExcelFile, sheet_index:int, search_len:int = 30) -> tuple[int, dict] | tuple[None, None]:
+    '''
+    Busca pelas possíveis colunas que contém cada campo num DFMEA, além da linha em que os dados iniciam.
+    
+    Arguments
+    ---------
+    file (pd.ExcelFile)
+        O arquivo que contém o DFMEA a ser lido.
+        
+    sheet_index (int)
+        O índice da planilha onde está o DFMEA.
+        
+    search_len (int)
+        A quantidade máxima de linhas a ser analizada antes de desitir.
+    
+    Returns
+    -------
+    int | None
+        Um inteiro indicando a posição da linha onde os dados iniciam, caso o algoritmo encontre a posição de
+        todos os campos tidos como necessário.
+        
+        None, caso ele não consiga fazer isso até atingir o limite estabelecido.
+    
+    dict | None
+        Um dicionário que mapeia o nome do campo a um inteiro indicando a coluna em que esse campo está, caso
+        encontre a posição de todos os campos.
+        
+        None, caso contrário.
+    '''
+    
     datalist = list(keysubstrings)
     data_cols = {}
     current_column = 0
@@ -156,18 +194,44 @@ def get_data_cols_from_doc(file:pd.ExcelFile, sheet_index:int, search_len:int = 
         return None, None
     return start_row + 1, data_cols
 
-# retorna uma lista contendo:
-# -- o id do projeto, do banco de dados;
-# -- o número do projeto, caso encontre;
-# -- o nome do projeto, caso encontre.
-# caso não esteja no banco, o id será None.
-# 
-# é importante destacar que ele busca baseado no número do projeto ou no nome do arquivo, o nome do projeto
-# não é utilizado devido a dificuldade em localizá-lo. O número do projeto possui precedência sobre o nome do arquivo.
-# 
-# file é o arquivo e filename é o nome do arquivo a partir do diretório contendo os dfmeas, definido previamente
-# é importante informar o filename a partir do diretório pois o banco usa um VARCHAR(255) para ele
 def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.connector.MySQLConnection, search_len:int = 30) -> tuple[int | None, str | None, str | None]:
+    '''
+    Busca o nome e número dum projeto (conjunto de DFMEAs) no documento e seu id no banco de dados. A busca é realizada na
+    primeira planilha do projeto.
+    
+    A busca no banco é realizada inicialmente pelo número do projeto. Caso não encontre o número no banco ou no documento,
+    ele busca pelo nome do arquivo. O nome do projeto nunca é utilizado para realizar a busca devido à dificuldade em
+    localizá-lo.
+    
+    Arguments
+    ---------
+    file (pd.ExcelFile)
+        O arquivo do projeto.
+    
+    filename (str)
+        Nome do arquivo com a extensão. Preferencialmente a partir do diretório contendo os DFMEAs, pois o banco utiliza um
+        ``VARCHAR(255)`` para eles.
+    
+    connection (mysql.connector.MySQLConnection)
+        Conexão com o banco de dados.
+        
+    search_len (int)
+        A quantidade máxima de linhas a ser analizada antes de desitir.
+    
+    Returns
+    -------
+    int | None
+        O id do projeto, no banco de dados, caso encontre. None, caso contrário.
+        
+    str | None
+        O número do projeto, caso encontre. None, caso contrário.
+        
+        A string é no formato "PRJ-00-000000000".
+        
+    str | None
+        O nome do projeto, caso encontre. None, caso contrário.
+    '''
+    
     contents = pd.read_excel(file, header=None, dtype=str, na_filter=False, nrows=search_len)
     number_labels = []
     name_labels = []
@@ -227,20 +291,54 @@ def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.c
         return id[0], project_number, project_name
     return None, project_number, project_name
 
-# caso o projeto não esteja no banco (indicado por project_id == None), insere os dados dele (nome do projeto,
-# número do projeto e o nome do arquivo, sem a extensão) na tabela `dfmeas`;
-# caso esteja, atualiza essas informações na tabela `dfmeas`, útil caso o número ou nome sejam incluidos ou caso haja
-# uma mudança no nome do arquivo, e deleta os dados referentes a esse projeto das tabelas selecionadas, para que eles
-# possam ser inseridos posteriormente. Essa é a única forma de garantir que os dados serão atualizados sem repetição.
-# 
-# em ambos casos, retorna o id do projeto.
-# 
-# project_id é o id do projeto, obtido por get_project_info_from_db;
-# project_number é o número do projeto, obtido por get_project_info_from_db; 
-# project_name é o nome do projeto, obtido por get_project_info_from_db;
-# filename é o nome do arquivo com a extensão;
-# overwrite_mode indica a partir de qual tabela os valores serão atualizados (deletados). No geral, é melhor usar 'full'.
-def insert_project_into_db(project_id:int|None, project_number:str, project_name:str, filename:str, overwrite_mode:str, connection:mysql.connector.MySQLConnection) -> int:
+# Acho que é melhor usar 'full' para overwrite_mode na maioria dos casos.
+def insert_project_into_db(project_id:int|None, project_number:str|None, project_name:str|None, filename:str, overwrite_mode, connection:mysql.connector.MySQLConnection) -> int:
+    '''
+    Caso ``project_id == None``, insere os dados dele (nome do projeto, número do projeto e o nome do arquivo, sem a extensão)
+    na tabela `dfmeas` do banco de dados;
+    
+    Caso ``project_id != None``, atualiza essas informações na tabela `dfmeas` e deleta os dados referentes a esse projeto das
+    outras tabelas, para que eles possam ser inseridos posteriormente.
+    
+    Essa é a única forma de garantir que todos os dados serão atualizados.
+    
+    Arguments
+    ---------
+    project_id (int | None)
+        ID do projeto no banco de dados.
+    
+    project_number (str | None)
+        Número do projeto.
+    
+    project_name (str | None)
+        Nome do projeto.
+    
+    filename (str)
+        Nome do arquivo com a extensão. Preferencialmente a partir do diretório contendo os DFMEAs, pois o banco utiliza um
+        ``VARCHAR(255)`` para eles.
+    
+    overwrite_mode ('full' | 'components' |'functions' | 'failures' | 'actions' | 1 | 2 | 3 | 4 | Any)
+        Indica a partir de qual tabela os valores serão atualizados (deletados).
+        
+        'full', 'components' ou 4: deleta de todas as tabelas;
+        
+        'functions' ou 3: deleta de `functions`, `failures` e `actions`;
+        
+        'failures' ou 2: deleta de `failures` e `actions`;
+        
+        'actions' ou 1: deleta apenas de `actions`;
+        
+        Qualquer outra coisa: não deleta de nenhuma tabela, apenas atualiza as informações em `dfmeas`.
+    
+    connection (mysql.connector.MySQLConnection)
+        Conexão com o banco de dados.
+    
+    Returns
+    -------
+    int
+        ID do projeto no banco de dados.
+    '''
+    
     cursor = connection.cursor()
     filename = filename[0:filename.rfind('.')]
     
@@ -287,10 +385,31 @@ def insert_project_into_db(project_id:int|None, project_number:str, project_name
     connection.commit()
     return project_id
 
-# insere os dados dos dfmeas no banco
-# 
-# columns é um dicionário contendo os dados localizados e a coluna em que estão
 def insert_sheet_datas_into_db(file:pd.ExcelFile, project_id:int, sheet_index:int, connection:mysql.connector.MySQLConnection, initial_row:int, columns:dict):
+    '''
+    Insere os dados do DFMEA no banco de dados.
+    
+    Arguments
+    ---------
+    file (pd.ExcelFile)
+        O arquivo do projeto.
+    
+    project_id (int)
+        ID do projeto no banco de dados.
+    
+    sheet_index (int)
+        Índice da planilha que contém o DFMEA.
+    
+    connection (mysql.connector.MySQLConnection)
+        Conexão com o banco de dados.
+    
+    initial_row (int)
+        Linha onde começam os dados.
+    
+    columns (dict)
+        Dicionário mapeando o nome do campo à coluna em que ele está.
+    '''
+    
     old_data = {}
     new = {'components':False, 'functions':False, 'failures':False, 'actions':False}
     id = {'components':0, 'functions':0, 'failures':0, 'actions':0}
@@ -459,11 +578,51 @@ def insert_sheet_datas_into_db(file:pd.ExcelFile, project_id:int, sheet_index:in
         print(f'{total[3]['failures']} adicionadas em `failures`')
         print(f'{total[3]['actions']} adicionadas em `actions`\n')
 
-# essa função unifica todas as outras
-# é particamente a única que precisa ser importada, mas seria bom mudar algumas coisas nela, talvez para interagir com o usuário
+# Essa função unifica todas as outras
+# É particamente a única que precisa ser importada, mas seria bom mudar algumas coisas nela, talvez para interagir com o usuário
 # e corrigir o número ou o nome do projeto, caso esteja errado, ou informá-lo se o projeto já está no banco e perguntar-lhe se ele
-# quer atualizar as informações 
-def insert_dfmeas_into_db(dfmea_directory:str, filename:str, connection:mysql.connector.MySQLConnection, search_len:int = 30, overwrite_mode:str = None):
+# quer atualizar as informações.
+# 
+# 'full' para overwrite_mode parece ser o ideal na maioria dos casos, porque é a única forma de garantir que os dados no banco
+# espelhe os do documento. 
+def insert_dfmeas_into_db(dfmea_directory:str, filename:str, connection:mysql.connector.MySQLConnection, search_len:int = 30, overwrite_mode = 0):
+    '''
+    Automatiza todo o processo de adicionar um projeto ao banco de dados.
+    
+    O tratamento de projetos repetidos é feito por meio de `overwrite_mode`.
+    
+    Arguments
+    ---------
+    dfmea_directory (str)
+        Diretório que contém os projetos e DFMEAs.
+    
+    filename (str)
+        Nome do arquivo com a extensão. Preferencialmente a partir do diretório contendo os DFMEAs, pois o banco utiliza um
+        ``VARCHAR(255)`` para eles.
+    
+    connection (mysql.connector.MySQLConnection)
+        Conexão com o banco de dados.
+    
+    search_len (int)
+        A quantidade máxima de linhas a ser analizada durante a determinação das colunas e das informações do projeto.
+    
+    overwrite_mode ('full' | 'components' |'functions' | 'failures' | 'actions' | 1 | 2 | 3 | 4 | None | Any)
+        Indica a partir de qual tabela os valores serão sobrescritos, ao invés de apenas inseridos, caso o projeto já esteja no banco.
+        
+        'full', 'components' ou 4: sobrescreve em todas as tabelas;
+        
+        'functions' ou 3: sobrescreve em `functions`, `failures` e `actions` e insere em `components`;
+        
+        'failures' ou 2: sobrescreve em `failures` e `actions` e insere em `components` e `functions`;
+        
+        'actions' ou 1: sobrescreve apenas em `actions` e insere em `components`, `functions` e `failures`;
+        
+        None: não sobrescreve ou insere nada em nenhuma tabela, também não atualiza as informações em `dfmeas`;
+        
+        Qualquer outra coisa: não sobrescreve em nenhuma tabela, porém atualiza as informações em `dfmeas` e
+        insere novos dados em todas as tabelas.
+    '''
+    
     file = pd.ExcelFile(dfmea_directory + filename, engine='calamine')
     sheet = 0
     
