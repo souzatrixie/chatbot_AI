@@ -29,7 +29,7 @@ def fetch_documents_from_table(table_name, limit=100):
 
     cursor = connection.cursor(dictionary=True)
     try:
-        cursor.execute(f"SELECT * FROM dfmeas.{table_name} LIMIT {limit}")
+        cursor.execute(f"SELECT * FROM {table_name} LIMIT {limit}")
         documents = cursor.fetchall()
         
         if not documents:
@@ -45,7 +45,7 @@ def fetch_documents_from_table(table_name, limit=100):
 
 def get_all_documents():
     tables = [
-        "actions", "components", "failures", "functions"
+        "actions", "components", "dfmeas", "failures", "functions"
     ]
     
     all_documents = []
