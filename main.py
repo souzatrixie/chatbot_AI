@@ -6,6 +6,8 @@ from app.controllers.query_controller import generate_response
 from app.controllers.rag_controller import RAGController
 from streamlit_chat import message
 from interface.login_page import render_login_page  # Importa a página de login
+from pandas import ExcelFile
+from db.reader import file_upload_manager
 
 # Configurações globais
 settings = settings.settings
@@ -47,6 +49,35 @@ def load_sidebar():
         # Adicionar seletor de idioma
         language_option = st.radio("Escolha o idioma da resposta:", ["Português", "Inglês"])
         st.session_state.language = "pt" if language_option == "Português" else "en"
+        
+        # Upload de novos projetos
+        if "uploader_key" not in st.session_state:
+            st.session_state.uploader_key = 0
+        
+        project_file = st.file_uploader("Adicionar novos DFMEAs", ['xlsx', 'xls', 'ods'], key=st.session_state.uploader_key)
+        if project_file is not None:
+            upload_status = file_upload_manager(project_file)
+            if upload_status == True:
+                st.write("DFMEA inserido com sucesso")
+            if upload_status is not None:
+                st.session_state.uploader_key += 1
+                st.rerun()
+        
+        # Se der errado, tente essa versão mais simples
+        '''
+        if "uploader_key" not in st.session_state:
+            st.session_state.uploader_key = 0
+        
+        project_file = st.file_uploader("Adicionar novos DFMEAs", ['xlsx', 'xls', 'ods'], key=st.session_state.uploader_key)
+        if project_file is not None:
+            connection = get_db_connection()
+            if connection is None:
+                st.write("falha ao conectar com o banco de dados")
+            else:
+                insert_dfmeas_into_db(project_file, connection, overwrite_mode='full')
+                st.session_state.uploader_key += 1
+                st.rerun()
+        '''
 
         # Botões de download do histórico
         history_json = json.dumps(st.session_state.get("messages", []), indent=4)

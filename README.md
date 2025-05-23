@@ -62,7 +62,7 @@ pip install -r [requirements.txt](http://_vscodecontentref_/18)
 host = "localhost"
 user = "root"
 password = "sua_senha"
-name = "dfmeas"
+name = "maite_db"
 ```
 
 ### Executar

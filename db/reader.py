@@ -1,5 +1,6 @@
-import pandas as pd, mysql.connector, streamlit as st
+import pandas as pd, mysql.connector, streamlit as st, re
 from math import sqrt
+from db.database import get_db_connection
 
 keysubstrings = {
               'item' : ('component', 'item', 'itens'),
@@ -122,7 +123,10 @@ def get_data_cols_from_doc(file:pd.ExcelFile, sheet_index:int, search_len:int = 
     for key in keysubstrings:
         candidates[key] = []
     
-    contents = pd.read_excel(file, sheet_name=sheet_index, header=None, dtype=str, nrows=search_len, na_filter=False)
+    try:
+        contents = pd.read_excel(file, sheet_name=sheet_index, header=None, dtype=str, nrows=search_len, na_filter=False)
+    except:
+        return None, None
     
     # determina todas as possíveis colunas para cada dado do dfmea
     for row in contents.iterrows():
@@ -194,7 +198,7 @@ def get_data_cols_from_doc(file:pd.ExcelFile, sheet_index:int, search_len:int = 
         return None, None
     return start_row + 1, data_cols
 
-def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.connector.MySQLConnection, search_len:int = 30) -> tuple[int | None, str | None, str | None]:
+def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.connector.MySQLConnection, sheet_index:int, search_len:int = 30) -> tuple[int | None, str | None, str | None]:
     '''
     Busca o nome e número dum projeto (conjunto de DFMEAs) no documento e seu id no banco de dados. A busca é realizada na
     primeira planilha do projeto.
@@ -213,7 +217,10 @@ def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.c
     
     connection (mysql.connector.MySQLConnection)
         Conexão com o banco de dados.
-        
+    
+    sheet_index (int)
+        O índice da planilha onde está o DFMEA.
+    
     search_len (int)
         A quantidade máxima de linhas a ser analizada antes de desitir.
     
@@ -231,7 +238,7 @@ def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.c
         O nome do projeto, caso encontre. None, caso contrário.
     '''
     
-    contents = pd.read_excel(file, header=None, dtype=str, na_filter=False, nrows=search_len)
+    contents = pd.read_excel(file, header=None, sheet_name=sheet_index, dtype=str, na_filter=False, nrows=search_len)
     number_labels = []
     name_labels = []
     number_cells = []
@@ -573,6 +580,8 @@ def insert_sheet_datas_into_db(file:pd.ExcelFile, project_id:int, sheet_index:in
         print(f'{total[3]['failures']} adicionadas em `failures`')
         print(f'{total[3]['actions']} adicionadas em `actions`\n')
 
+
+
 # Essa função unifica todas as outras
 # É particamente a única que precisa ser importada, mas seria bom mudar algumas coisas nela, talvez para interagir com o usuário
 # e corrigir o número ou o nome do projeto, caso esteja errado, ou informá-lo se o projeto já está no banco e perguntar-lhe se ele
@@ -580,7 +589,7 @@ def insert_sheet_datas_into_db(file:pd.ExcelFile, project_id:int, sheet_index:in
 # 
 # 'full' para overwrite_mode parece ser o ideal na maioria dos casos, porque é a única forma de garantir que os dados no banco
 # espelhe os do documento. 
-def insert_dfmeas_into_db(project_file:st.UploadedFile, connection:mysql.connector.MySQLConnection, search_len:int = 30, overwrite_mode = 0):
+def insert_dfmeas_into_db(project_file, connection:mysql.connector.MySQLConnection, max_attempts:int = 3, search_len:int = 30, overwrite_mode = 0):
     '''
     Automatiza todo o processo de adicionar um projeto ao banco de dados.
     
@@ -619,20 +628,70 @@ def insert_dfmeas_into_db(project_file:st.UploadedFile, connection:mysql.connect
     filename = filename[0:filename.rfind('.')]
     sheet = 0
     
-    # depuração
-    if 0:
-        print(f"{filename}")
-    
     start_row, columns = get_data_cols_from_doc(file, sheet, search_len)
+    
+    while(sheet < max_attempts):
+        start_row, columns = get_data_cols_from_doc(file, sheet)
+        if start_row is not None:
+            break
+        sheet += 1
+    
     if start_row != None:
-        id, number, name = get_project_info_from_db(file, filename, connection, start_row - 1)
+        id, number, name = get_project_info_from_db(file, filename, connection, 1, start_row - 1)
         if overwrite_mode != None or id == None:
             id = insert_project_into_db(id, number, name, filename, overwrite_mode, connection)
             while(start_row != None):
-                
-                if 0:
-                    print(f'sheet {sheet}')
-                
                 insert_sheet_datas_into_db(file, id, sheet, connection, start_row, columns)
                 sheet += 1
                 start_row, columns = get_data_cols_from_doc(file, sheet, search_len)
+
+def file_upload_manager(project_file, max_attempts:int = 3, search_len:int = 30):
+    connection = get_db_connection()
+    if connection is None:
+        st.write("falha ao conectar com o banco de dados")
+    else:
+        file = pd.ExcelFile(project_file, engine='calamine')
+        filename = project_file.name
+        filename = filename[0:filename.rfind('.')]
+        current_sheet = 0
+        
+        while(current_sheet < max_attempts):
+            start_row, columns = get_data_cols_from_doc(file, current_sheet)
+            if start_row is not None:
+                break
+            current_sheet += 1
+            
+        if start_row is None:
+            st.write("Colunas não detectadas")
+        else:
+            project_id, project_number, project_name = get_project_info_from_db(file, filename, connection, current_sheet, start_row - 1)
+            
+            if project_number is None:
+                st.write("Número do projeto não dectado")
+                project_number = ''
+            col1, col2 = st.columns([1, 3], vertical_alignment='center')
+            col1.write("Número:")
+            project_number = col2.text_input("name", label_visibility='collapsed', value=project_number, placeholder='PRJ-00-000000000', max_chars=16)
+            invalid_number = not bool(re.fullmatch("PRJ-[0-9]{2}-[0-9]{9}", project_number))
+            if invalid_number:
+                st.write("Número inválido")
+            
+            col1, col2 = st.columns([1, 3], vertical_alignment='center')
+            col1.write("Nome:")
+            project_name = col2.text_input("name", label_visibility='collapsed', value=project_name)
+            
+            if project_id is not None:
+                st.write("Uma outra versão do projeto já está no banco. Deseja substituí-la por esta?")
+
+            col1, col2 = st.columns(2)
+            confirm = col1.button(label="Sim" if (project_id is not None) else "Inserir", disabled=invalid_number, use_container_width=True)
+            cancel = col2.button(label="Não" if (project_id is not None) else "cancelar", disabled=confirm, use_container_width=True)
+            if cancel:
+                return False
+            if confirm:
+                project_id = insert_project_into_db(project_id, project_number, project_name, filename, 'full', connection)
+                while(start_row is not None):
+                    insert_sheet_datas_into_db(file, project_id, current_sheet, connection, start_row, columns)
+                    current_sheet += 1
+                    start_row, columns = get_data_cols_from_doc(file, current_sheet, search_len)
+                return True
