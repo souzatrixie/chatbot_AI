@@ -1,4 +1,4 @@
-import pandas as pd, mysql.connector
+import pandas as pd, mysql.connector, streamlit as st
 from math import sqrt
 
 keysubstrings = {
@@ -209,8 +209,7 @@ def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.c
         O arquivo do projeto.
     
     filename (str)
-        Nome do arquivo com a extensão. Preferencialmente a partir do diretório contendo os DFMEAs, pois o banco utiliza um
-        ``VARCHAR(255)`` para eles.
+        Nome do arquivo sem a extensão. O banco armazena os nomes sem a extensão.
     
     connection (mysql.connector.MySQLConnection)
         Conexão com o banco de dados.
@@ -273,9 +272,7 @@ def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.c
         project_name = project_name[(pos if pos >= 0 else 0):].lstrip()
         if project_name == '':
             project_name = None
-    
-    filename = filename[0:filename.rfind('.')]
-    
+
     # busca pelo projeto
     cursor = connection.cursor()
     if project_number != None:
@@ -314,8 +311,7 @@ def insert_project_into_db(project_id:int|None, project_number:str|None, project
         Nome do projeto.
     
     filename (str)
-        Nome do arquivo com a extensão. Preferencialmente a partir do diretório contendo os DFMEAs, pois o banco utiliza um
-        ``VARCHAR(255)`` para eles.
+        Nome do arquivo sem a extensão. O banco armazena os nomes sem a extensão.
     
     overwrite_mode ('full' | 'components' |'functions' | 'failures' | 'actions' | 1 | 2 | 3 | 4 | Any)
         Indica a partir de qual tabela os valores serão atualizados (deletados).
@@ -340,7 +336,6 @@ def insert_project_into_db(project_id:int|None, project_number:str|None, project
     '''
     
     cursor = connection.cursor()
-    filename = filename[0:filename.rfind('.')]
     
     if project_id == None:
         cursor.execute('''INSERT INTO `dfmeas` (`project_name`, `project_number`, `filename`) VALUES (%s, %s, %s)''', 
@@ -585,7 +580,7 @@ def insert_sheet_datas_into_db(file:pd.ExcelFile, project_id:int, sheet_index:in
 # 
 # 'full' para overwrite_mode parece ser o ideal na maioria dos casos, porque é a única forma de garantir que os dados no banco
 # espelhe os do documento. 
-def insert_dfmeas_into_db(dfmea_directory:str, filename:str, connection:mysql.connector.MySQLConnection, search_len:int = 30, overwrite_mode = 0):
+def insert_dfmeas_into_db(project_file:st.UploadedFile, connection:mysql.connector.MySQLConnection, search_len:int = 30, overwrite_mode = 0):
     '''
     Automatiza todo o processo de adicionar um projeto ao banco de dados.
     
@@ -593,12 +588,8 @@ def insert_dfmeas_into_db(dfmea_directory:str, filename:str, connection:mysql.co
     
     Arguments
     ---------
-    dfmea_directory (str)
-        Diretório que contém os projetos e DFMEAs.
-    
-    filename (str)
-        Nome do arquivo com a extensão. Preferencialmente a partir do diretório contendo os DFMEAs, pois o banco utiliza um
-        ``VARCHAR(255)`` para eles.
+    project_file (st.UploadedFile)
+        Arquivo obtido por meio de ``st.file_uploader()``. 
     
     connection (mysql.connector.MySQLConnection)
         Conexão com o banco de dados.
@@ -623,7 +614,9 @@ def insert_dfmeas_into_db(dfmea_directory:str, filename:str, connection:mysql.co
         insere novos dados em todas as tabelas.
     '''
     
-    file = pd.ExcelFile(dfmea_directory + filename, engine='calamine')
+    file = pd.ExcelFile(project_file, engine='calamine')
+    filename = project_file.name
+    filename = filename[0:filename.rfind('.')]
     sheet = 0
     
     # depuração
