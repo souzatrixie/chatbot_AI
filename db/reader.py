@@ -198,25 +198,14 @@ def get_data_cols_from_doc(file:pd.ExcelFile, sheet_index:int, search_len:int = 
         return None, None
     return start_row + 1, data_cols
 
-def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.connector.MySQLConnection, sheet_index:int, search_len:int = 30) -> tuple[int | None, str | None, str | None]:
+def get_project_info_from_doc(file:pd.ExcelFile, sheet_index:int, search_len:int = 30) -> tuple[int | None, str | None]:
     '''
-    Busca o nome e número dum projeto (conjunto de DFMEAs) no documento e seu id no banco de dados. A busca é realizada na
-    primeira planilha do projeto.
-    
-    A busca no banco é realizada inicialmente pelo número do projeto. Caso não encontre o número no banco ou no documento,
-    ele busca pelo nome do arquivo. O nome do projeto nunca é utilizado para realizar a busca devido à dificuldade em
-    localizá-lo.
+    Busca o nome e número dum projeto (conjunto de DFMEAs) no documento. A busca é realizada na planilha especificada.
     
     Arguments
     ---------
     file (pd.ExcelFile)
         O arquivo do projeto.
-    
-    filename (str)
-        Nome do arquivo sem a extensão. O banco armazena os nomes sem a extensão.
-    
-    connection (mysql.connector.MySQLConnection)
-        Conexão com o banco de dados.
     
     sheet_index (int)
         O índice da planilha onde está o DFMEA.
@@ -226,9 +215,6 @@ def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.c
     
     Returns
     -------
-    int | None
-        O id do projeto, no banco de dados, caso encontre. None, caso contrário.
-        
     str | None
         O número do projeto, caso encontre. None, caso contrário.
         
@@ -279,21 +265,63 @@ def get_project_info_from_db(file:pd.ExcelFile, filename:str, connection:mysql.c
         project_name = project_name[(pos if pos >= 0 else 0):].lstrip()
         if project_name == '':
             project_name = None
+    
+    return project_number, project_name
 
-    # busca pelo projeto
+def get_project_id_from_db(project_number:str, filename:str, connection:mysql.connector.MySQLConnection) -> tuple[int, bool]:
+    '''
+    Busca o id dum projeto no banco de dados.
+    
+    A busca é realizada inicialmente pelo número do projeto. Caso não encontre o número no banco ou ele seja None,
+    ele busca pelo nome do arquivo. O nome do projeto nunca é utilizado para realizar a busca devido à dificuldade em
+    localizá-lo.
+    
+    Arguments
+    ---------
+    project_number (str)
+        O número do projeto no formato "PRJ-00-000000000".
+    
+    filename (str)
+        Nome do arquivo sem a extensão. O banco armazena os nomes sem a extensão.
+    
+    connection (mysql.connector.MySQLConnection)
+        Conexão com o banco de dados.
+    
+    Returns
+    -------
+    int | None
+        O id do projeto, no banco de dados, caso encontre. None, caso contrário.
+    
+    bool
+        True caso encontre apenas um projeto;
+        False caso encontre múltiplos projetos distintos.
+    
+    '''
+    
     cursor = connection.cursor()
-    if project_number != None:
+    
+    number_id = None
+    filename_id = None
+    if project_number is not None:
         cursor.execute('SELECT `id` FROM dfmeas WHERE `project_number` = %s', (project_number,))
         id = cursor.fetchone()
         cursor.fetchall()
         if id:
-            return id[0], project_number, project_name
+            number_id =  id[0]
     cursor.execute('SELECT `id` FROM dfmeas WHERE `filename` = %s', (filename,))
     id = cursor.fetchone()
     cursor.fetchall()
     if id:
-        return id[0], project_number, project_name
-    return None, project_number, project_name
+        filename_id = id[0]
+    if filename_id is not None and number_id is not None:
+        if filename_id == number_id:
+            return number_id, True
+        return None, False
+    if number_id is not None:
+        return number_id, True
+    if filename_id is not None:
+        return filename_id, True
+    return None, True
 
 # Acho que é melhor usar 'full' para overwrite_mode na maioria dos casos.
 def insert_project_into_db(project_id:int|None, project_number:str|None, project_name:str|None, filename:str, overwrite_mode, connection:mysql.connector.MySQLConnection) -> int:
@@ -637,8 +665,9 @@ def insert_dfmeas_into_db(project_file, connection:mysql.connector.MySQLConnecti
         sheet += 1
     
     if start_row != None:
-        id, number, name = get_project_info_from_db(file, filename, connection, 1, start_row - 1)
-        if overwrite_mode != None or id == None:
+        number, name = get_project_info_from_doc(file, 1, start_row - 1)
+        id, unique = get_project_id_from_db(number, filename, connection)
+        if (overwrite_mode != None or id == None) and unique:
             id = insert_project_into_db(id, number, name, filename, overwrite_mode, connection)
             while(start_row != None):
                 insert_sheet_datas_into_db(file, id, sheet, connection, start_row, columns)
@@ -664,10 +693,14 @@ def file_upload_manager(project_file, max_attempts:int = 3, search_len:int = 30)
         if start_row is None:
             st.write("Colunas não detectadas")
         else:
-            project_id, project_number, project_name = get_project_info_from_db(file, filename, connection, current_sheet, start_row - 1)
+            project_number, project_name = get_project_info_from_doc(file, current_sheet, start_row - 1)
+            
+            col1, col2 = st.columns([1, 3], vertical_alignment='center')
+            col1.write("Nome:")
+            project_name = col2.text_input("name", label_visibility='collapsed', value=project_name)
             
             if project_number is None:
-                st.write("Número do projeto não dectado")
+                st.write("Número do projeto não identificado")
                 project_number = ''
             col1, col2 = st.columns([1, 3], vertical_alignment='center')
             col1.write("Número:")
@@ -675,13 +708,15 @@ def file_upload_manager(project_file, max_attempts:int = 3, search_len:int = 30)
             invalid_number = not bool(re.fullmatch("PRJ-[0-9]{2}-[0-9]{9}", project_number))
             if invalid_number:
                 st.write("Número inválido")
+                project_id = None
+            else:
+                project_id, unique_id = get_project_id_from_db(project_number, filename, connection)
+                if not unique_id:
+                    st.write("Número e nome do arquivo apontam para projetos distintos. Tente renomear o arquivo.")
+                    invalid_number = True
             
-            col1, col2 = st.columns([1, 3], vertical_alignment='center')
-            col1.write("Nome:")
-            project_name = col2.text_input("name", label_visibility='collapsed', value=project_name)
-            
-            if project_id is not None:
-                st.write("Uma outra versão do projeto já está no banco. Deseja substituí-la por esta?")
+            if project_id is not None and unique_id:
+                st.write("Uma outra versão do projeto foi encontrada no banco. Deseja substituí-la por esta?")
 
             col1, col2 = st.columns(2)
             confirm = col1.button(label="Sim" if (project_id is not None) else "Inserir", disabled=invalid_number, use_container_width=True)
